@@ -37,6 +37,8 @@ module Alipay
       @format = options['format'] || 'json'
       @charset = options['charset'] || 'UTF-8'
       @sign_type = options['sign_type'] || 'RSA2'
+      @app_cert = options['app_cert']
+      @alipay_root_cert = options['alipay_root_cert']
     end
 
     # Generate a query string that use for APP SDK excute.
@@ -183,6 +185,12 @@ module Alipay
         'version' => '1.0',
         'timestamp' => Time.now.localtime('+08:00').strftime("%Y-%m-%d %H:%M:%S")
       }.merge(::Alipay::Utils.stringify_keys(params))
+      if !@app_cert.nil? && !@alipay_root_cert.nil?
+        params = params.merge({
+          'app_cert_sn' => get_cert_sn(@app_cert),
+          'alipay_root_cert_sn' => get_root_cert_sn(@alipay_root_cert)
+        })
+      end
       params['sign'] = sign(params)
       params
     end
@@ -190,5 +198,23 @@ module Alipay
     def params_to_string(params)
       params.sort.map { |item| item.join('=') }.join('&')
     end
+
+    # get app_cert_sn
+    def get_cert_sn(str)
+      return nil if str.nil?
+      certificate = OpenSSL::X509::Certificate.new(str)
+      issuer_arr = OpenSSL::X509::Name.new(certificate.issuer).to_a
+      issuer = issuer_arr.reverse.map { |item| item[0..1].join('=') }.join(',')
+      serial = OpenSSL::BN.new(certificate.serial).to_s
+      OpenSSL::Digest::MD5.hexdigest(issuer + serial)
+    end
+
+    # get alipay_root_cert_sn
+    def get_root_cert_sn(str)
+      return nil if str.nil?
+      arr = str.scan(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/)
+      arr.map { |item| get_cert_sn(item) }.join('_')
+    end
+
   end
 end
