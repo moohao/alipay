@@ -37,8 +37,8 @@ module Alipay
       @format = options['format'] || 'json'
       @charset = options['charset'] || 'UTF-8'
       @sign_type = options['sign_type'] || 'RSA2'
-      @app_cert_sn = options['app_cert_sn']
-      @alipay_root_cert_sn = options['alipay_root_cert_sn']
+      @app_cert = options['app_cert']
+      @alipay_root_cert = options['alipay_root_cert']
     end
 
     # Generate a query string that use for APP SDK excute.
@@ -183,16 +183,14 @@ module Alipay
         'charset' => @charset,
         'sign_type' => @sign_type,
         'version' => '1.0',
-        'app_cert_sn' => @app_cert_sn,
-        'alipay_root_cert_sn' => @alipay_root_cert_sn,
         'timestamp' => Time.now.localtime('+08:00').strftime("%Y-%m-%d %H:%M:%S")
       }.merge(::Alipay::Utils.stringify_keys(params))
-      # if !@app_cert.nil? && !@alipay_root_cert.nil?
-      #   params = params.merge({
-      #     'app_cert_sn' => get_cert_sn(@app_cert),
-      #     'alipay_root_cert_sn' => get_root_cert_sn(@alipay_root_cert)
-      #   })
-      # end
+      if !@app_cert.nil? && !@alipay_root_cert.nil?
+        params = params.merge({
+          'app_cert_sn' => get_cert_sn(@app_cert),
+          'alipay_root_cert_sn' => get_root_cert_sn(@alipay_root_cert)
+        })
+      end
       params['sign'] = sign(params)
       params
     end
@@ -202,9 +200,12 @@ module Alipay
     end
 
     # get app_cert_sn
-    def get_cert_sn(str)
+    def get_cert_sn(str, matchAlgo = false)
       return nil if str.nil?
       certificate = OpenSSL::X509::Certificate.new(str)
+      if matchAlgo
+        return unless certificate.public_key.is_a?(OpenSSL::PKey::RSA)
+      end
       issuer_arr = OpenSSL::X509::Name.new(certificate.issuer).to_a
       issuer = issuer_arr.reverse.map { |item| item[0..1].join('=') }.join(',')
       serial = OpenSSL::BN.new(certificate.serial).to_s
@@ -215,7 +216,14 @@ module Alipay
     def get_root_cert_sn(str)
       return nil if str.nil?
       arr = str.scan(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/)
-      arr.map { |item| get_cert_sn(item) }.join('_')
+      arr_sn = []
+      arr.each do |item|
+        sn = get_cert_sn(item, true)
+        unless sn.nil?
+          arr_sn.push(sn)
+        end
+      end
+      arr_sn.join('_')
     end
 
   end
