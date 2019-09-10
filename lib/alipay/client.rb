@@ -204,7 +204,11 @@ module Alipay
       return nil if str.nil?
       certificate = OpenSSL::X509::Certificate.new(str)
       if matchAlgo
-        return unless certificate.public_key.is_a?(OpenSSL::PKey::RSA)
+        begin
+          return unless certificate.public_key.is_a?(OpenSSL::PKey::RSA)
+        rescue => exception
+          return
+        end
       end
       issuer_arr = OpenSSL::X509::Name.new(certificate.issuer).to_a
       issuer = issuer_arr.reverse.map { |item| item[0..1].join('=') }.join(',')
