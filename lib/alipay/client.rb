@@ -37,8 +37,8 @@ module Alipay
       @format = options['format'] || 'json'
       @charset = options['charset'] || 'UTF-8'
       @sign_type = options['sign_type'] || 'RSA2'
-      @app_cert = options['app_cert']
-      @alipay_root_cert = options['alipay_root_cert']
+      @app_cert_sn = options['app_cert_sn']
+      @alipay_root_cert_sn = options['alipay_root_cert_sn']
     end
 
     # Generate a query string that use for APP SDK excute.
@@ -183,14 +183,16 @@ module Alipay
         'charset' => @charset,
         'sign_type' => @sign_type,
         'version' => '1.0',
+        'app_cert_sn' => @app_cert_sn,
+        'alipay_root_cert_sn' => @alipay_root_cert_sn,
         'timestamp' => Time.now.localtime('+08:00').strftime("%Y-%m-%d %H:%M:%S")
       }.merge(::Alipay::Utils.stringify_keys(params))
-      if !@app_cert.nil? && !@alipay_root_cert.nil?
-        params = params.merge({
-          'app_cert_sn' => get_cert_sn(@app_cert),
-          'alipay_root_cert_sn' => get_root_cert_sn(@alipay_root_cert)
-        })
-      end
+      # if !@app_cert.nil? && !@alipay_root_cert.nil?
+      #   params = params.merge({
+      #     'app_cert_sn' => get_cert_sn(@app_cert),
+      #     'alipay_root_cert_sn' => get_root_cert_sn(@alipay_root_cert)
+      #   })
+      # end
       params['sign'] = sign(params)
       params
     end
