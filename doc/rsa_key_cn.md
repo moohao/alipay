@@ -74,11 +74,13 @@ pub_key.scan(/.{64}|.+$/).join("\n").insert(0, "-----BEGIN PUBLIC KEY-----\n").i
 ```ruby
 app_private_key = File.read('xxx.com_私钥.txt')
 app_private_key = app_private_key.scan(/.{64}|.+$/).join("\n").insert(0, "-----BEGIN RSA PRIVATE KEY-----\n").insert(-1, "\n-----END RSA PRIVATE KEY-----\n")
+open 'app_private_key.txt', 'w' do |io| io.write app_private_key end
 ```
 ### 处理应用阿里云公钥
 ```ruby
 alipay_public_key = File.read('alipayCertPublicKey_RSA2.crt')
 alipay_public_key = OpenSSL::X509::Certificate.new(alipay_public_key).public_key.to_s
+open 'alipay_public_key.txt', 'w' do |io| io.write alipay_public_key end
 ```
 ### 得到应用公钥证书sn
 ```ruby
